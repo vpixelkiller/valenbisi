@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <title>Valenbisi</title>
+    <style>
+        body {
+          font-family: 'Roboto', sans-serif;
+        }
+
+        h2 {
+          text-align: center;
+        }
+
+        .content-body {
+          margin: auto;
+          width: 40rem;
+        }
+
+        .outer-bar {
+          background-color: #adadad3d;
+          height: 2rem;
+          margin-left: none;
+          border-start-end-radius: 0.5rem;
+          border-end-start-radius: 0.5rem;
+          border-color: #00000012;
+          border-width: 1px;
+          border-style: outset;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .inner-left {
+          background-color: #782bf640;
+          height: 5rem;
+          margin-left: 0;
+          width: 33%;
+        }
+    </style>
+</head>
+<body>
+    <script>
+      const URL = 'https://valencia.opendatasoft.com/api/explore/v2.1/catalog/datasets/valenbisi-disponibilitat-valenbisi-dsiponibilidad/exports/json?lang=es&timezone=Europe%2FBerlin';
+      const NA = 'Dato no disponible';
+      async function fetchData() {
+          try {
+              const response = await fetch(URL);
+              const data = await response.json();
+              const records = data.sort((a, b) => a.number - b.number);
+
+              const table = document.querySelector(".table-content");
+              records.forEach(record => {
+                  const outerBar = document.createElement('div');
+                  outerBar.classList.add('outer-bar');
+                  const innerBar = document.createElement('div');
+                  innerBar.classList.add('inner-left');
+                  const textContainer = document.createElement('div');
+                  const kko = document.createElement('span');
+                kko.textContent = record.available || NA;
+
+                console.log(kko)
+                  outerBar.appendChild(innerBar);
+                  outerBar.appendChild(textContainer);
+
+                const puesto = document.createElement('p')
+                puesto.textContent = record.number || NA;
+                puesto.classList.add('puesto');
+                const ubicacion = document.createElement('p')
+                ubicacion.textContent = record.address || NA;
+                ubicacion.classList.add('ubicacion');
+                const disponibles = document.createElement('p')
+                disponibles.textContent = record.available || NA;
+                disponibles.classList.add('disponibles');
+                const huecos = document.createElement('p')
+                huecos.textContent = record.total || NA;
+                huecos.classList.add('huecos');
+                const localizacion = document.createElement('p')
+                localizacion.textContent = record['geo_shape.geometry.coordinates'] || NA;
+                localizacion.classList.add('localizacion');
+
+                textContainer.appendChild(puesto);
+                textContainer.appendChild(ubicacion);
+                textContainer.appendChild(disponibles);
+                textContainer.appendChild(huecos);
+                textContainer.appendChild(localizacion);
+
+
+                  <!-- ['number', 'address', 'available', 'total', 'geo_shape.geometry.coordinates'].forEach(key => { -->
+                  <!--     const bar = document.createElement('div'); -->
+                  <!--     const cell = document.createElement('span'); -->
+                  <!--     cell.textContent = key.split('.').reduce((obj, prop) => obj?.[prop], record) || NA; -->
+                      
+                  <!--                       // Crear el elemento <p> con texto -->
+                  <!--                       const paragraph = document.createElement('p'); -->
+                  <!--                       paragraph.textContent = 'Texto para la barra'; -->
+                  <!--                       bar.appendChild(cell); // Insertar el <p> dentro de la barra -->
+                      
+                  <!--     row.appendChild(cell); -->
+                  <!--     row.appendChild(document.createTextNode(' ')); -->
+                  <!-- }); -->
+                  table.appendChild(outerBar);
+              });
+          } catch (error) {
+              console.error('Error fetching data:', error);
+          }
+      }
+
+      fetchData();
+    </script>
+  <div class="header">
+    <h2>Prueba</h2>
+  </div>
+  <div class="content-body">
+  <div class="content-body">
+      <table style="width: 100%; border-spacing: 0; border-collapse: separate; table-layout: fixed;">
+        <tr>
+          <th style="text-align: center; width: 20%;">Puesto</th>
+          <th style="text-align: center; width: 20%;">Ubicación</th>
+          <th style="text-align: center; width: 20%;">Disponibles</th>
+          <th style="text-align: center; width: 20%;">Huecos</th>
+          <th style="text-align: center; width: 20%;">Localización</th>
+        </tr>
+      </table>
+      <div class="table-content"></div>
+  </div>
+</body>
+</html>

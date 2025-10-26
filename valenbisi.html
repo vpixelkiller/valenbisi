@@ -1,158 +1,203 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Valenbisi</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Roboto', sans-serif;
-      background: #f5f7fa;
-      margin: 0;
-      padding: 2rem;
-      color: #333;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Valenbisi</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <h2>Disponibilidad Valenbisi 🚲</h2>
+    <div class="grid" id="stations"></div>
 
-    h2 {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
+    <div id="mapModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3 id="modalTitle">Ubicación de la Estación</h3>
+        <p id="modalAddress"></p>
+        <div class="map-container">
+          <iframe id="mapFrame" src="" allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>
 
-    p {
-	margin: 0.0rem;
-    }
+    <script>
+      const CONFIG = {
+        API_URL:
+          "https://valencia.opendatasoft.com/api/explore/v2.1/catalog/datasets/valenbisi-disponibilitat-valenbisi-dsiponibilidad/exports/json?lang=es&timezone=Europe%2FBerlin",
+        DEFAULT_VALUE: "Dato no disponible",
+        MAP_BOUNDS_OFFSET: 0.001,
+      };
 
-    .grid {
-      display: grid;
-      padding-inline: 5%;
-      grid-template-columns: repeat(auto-fill, minmax(55rem, 1fr));
-      gap: 1.5rem;
-    }
-
-    .card {
-      background: white;
-      border-radius: 1rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      padding: 0.7rem 1.5rem;
-      display: grid;
-      justify-self: center;
-      min-width: 40rem;
-      max-width: 55rem;
-      max-height: 7rem;
-      flex-direction: column;
-      gap: 0.5rem;
-      transition: transform 0.2s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-5px);
-    }
-
-    .card h3 {
-      margin: 0;
-      font-size: 1.1rem;
-      color: #222;
-    }
-
-    .address {
-      font-size: 0.9rem;
-      color: #555;
-    }
-
-    .progress-bar {
-      position: relative;
-      height: 1rem;
-      background: #e0e0e0;
-      border-radius: 0.5rem;
-      overflow: hidden;
-    }
-
-    .progress {
-      background: linear-gradient(90deg, #4cafef, #2196f3);
-      height: 100%;
-      width: 0;
-      transition: width 0.5s ease;
-    }
-
-    .stats {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      color: #444;
-    }
-
-    .location {
-      font-size: 0.75rem;
-      color: #777;
-      margin-top: 0.5rem;
-    }
-  </style>
-</head>
-<body>
-  <h2>Disponibilidad Valenbisi 🚲</h2>
-  <div class="grid" id="stations"></div>
-
-  <script>
-    const URL = 'https://valencia.opendatasoft.com/api/explore/v2.1/catalog/datasets/valenbisi-disponibilitat-valenbisi-dsiponibilidad/exports/json?lang=es&timezone=Europe%2FBerlin';
-    const NA = 'Dato no disponible';
-
-    async function fetchData() {
-      try {
-        const response = await fetch(URL);
-        const data = await response.json();
-        const records = data.sort((a, b) => a.number - b.number);
-
-        const container = document.getElementById("stations");
-        records.forEach(record => {
-          const available = record.available || 0;
-          const total = record.total || 0;
-          const percent = total > 0 ? (available / total) * 100 : 0;
-
-          const card = document.createElement("div");
-          card.className = "card";
-
-          const title = document.createElement("h3");
-          title.textContent = `Puesto #${record.number || NA}`;
-
-          const address = document.createElement("p");
-          address.className = "address";
-          address.textContent = record.address || NA;
-
-          const progressBar = document.createElement("div");
-          progressBar.className = "progress-bar";
-          const progress = document.createElement("div");
-          progress.className = "progress";
-          progress.style.width = `${percent}%`;
-          progressBar.appendChild(progress);
-
-          const stats = document.createElement("div");
-          stats.className = "stats";
-          stats.innerHTML = `
-            <span>Disponibles: ${available}</span>
-            <span>Huecos: ${total - available}</span>
-          `;
-
-          const location = document.createElement("p");
-          location.className = "location";
-            console.log(record['geo_point_2d']);
-          location.textContent = `Coords: ${record['geo_point_2d'].lon ? record['geo_point_2d'].lat : NA}`;
-
-          card.appendChild(title);
-          card.appendChild(address);
-          card.appendChild(progressBar);
-          card.appendChild(stats);
-          card.appendChild(location);
-
-          container.appendChild(card);
-        });
-      } catch (error) {
-        console.error('Error fetching data:', error);
+      function getStationAvailability(record) {
+        const available = record.available || 0;
+        const total = record.total || 0;
+        const percentage = total > 0 ? (available / total) * 100 : 0;
+        return { available, total, percentage };
       }
-    }
 
-    fetchData();
-  </script>
-</body>
+      function hasValidCoordinates(record) {
+        return record["geo_point_2d"] && record["geo_point_2d"].lat && record["geo_point_2d"].lon;
+      }
+
+      function getCardClassName(index) {
+        return `card ${index % 2 === 0 ? "card-even" : "card-odd"}`;
+      }
+
+      function createStationTitle(stationNumber) {
+        const title = document.createElement("h3");
+        title.textContent = `Puesto #${stationNumber || CONFIG.DEFAULT_VALUE}`;
+        return title;
+      }
+
+      function createStationAddress(address, coordinates) {
+        const addressElement = document.createElement("p");
+        addressElement.className = "address";
+        addressElement.innerHTML = `<span>${address || CONFIG.DEFAULT_VALUE}</span>`;
+
+        const locationButton = createLocationButton(coordinates);
+        addressElement.appendChild(locationButton);
+
+        return addressElement;
+      }
+
+      function createLocationButton(coordinates) {
+        const location = document.createElement("span");
+        location.className = "location";
+        location.innerHTML = `<span class="location-icon">📍</span> Ver ubicación`;
+
+        if (hasValidCoordinates(coordinates)) {
+          location.onclick = () => openMapModal(coordinates);
+        } else {
+          location.style.opacity = "0.5";
+          location.style.cursor = "not-allowed";
+        }
+
+        return location;
+      }
+
+      function createProgressBar(percentage) {
+        const progressBar = document.createElement("div");
+        progressBar.className = "progress-bar";
+
+        const progress = document.createElement("div");
+        progress.className = "progress";
+        progress.style.width = `${percentage}%`;
+
+        progressBar.appendChild(progress);
+        return progressBar;
+      }
+
+      function createStationStats(available, total) {
+        const stats = document.createElement("div");
+        stats.className = "stats";
+        stats.innerHTML = `
+          <span>Disponibles: ${available}</span>
+          <span>Huecos: ${total - available}</span>
+        `;
+        return stats;
+      }
+
+      function createStationCard(record, index) {
+        const { available, total, percentage } = getStationAvailability(record);
+
+        const card = document.createElement("div");
+        card.className = getCardClassName(index);
+
+        const title = createStationTitle(record.number);
+        const address = createStationAddress(record.address, record);
+        const progressBar = createProgressBar(percentage);
+        const stats = createStationStats(available, total);
+
+        card.appendChild(title);
+        card.appendChild(address);
+        card.appendChild(progressBar);
+        card.appendChild(stats);
+
+        return card;
+      }
+
+      function generateMapUrl(latitude, longitude) {
+        const { MAP_BOUNDS_OFFSET } = CONFIG;
+        return `https://www.openstreetmap.org/export/embed.html?bbox=${
+          longitude - MAP_BOUNDS_OFFSET
+        },${latitude - MAP_BOUNDS_OFFSET},${longitude + MAP_BOUNDS_OFFSET},${
+          latitude + MAP_BOUNDS_OFFSET
+        }&layer=mapnik&marker=${latitude},${longitude}`;
+      }
+
+      function openMapModal(stationRecord) {
+        const modal = document.getElementById("mapModal");
+        const modalTitle = document.getElementById("modalTitle");
+        const modalAddress = document.getElementById("modalAddress");
+        const mapFrame = document.getElementById("mapFrame");
+
+        modalTitle.textContent = `Puesto #${stationRecord.number || CONFIG.DEFAULT_VALUE}`;
+        modalAddress.textContent = stationRecord.address || CONFIG.DEFAULT_VALUE;
+
+        const { lat, lon } = stationRecord["geo_point_2d"];
+        const mapUrl = generateMapUrl(lat, lon);
+        mapFrame.src = mapUrl;
+
+        modal.style.display = "block";
+      }
+
+      function closeMapModal() {
+        const modal = document.getElementById("mapModal");
+        modal.style.display = "none";
+      }
+
+      async function fetchStationsData() {
+        try {
+          const response = await fetch(CONFIG.API_URL);
+          const data = await response.json();
+          return data.sort((a, b) => a.number - b.number);
+        } catch (error) {
+          console.error("Error fetching stations data:", error);
+          throw error;
+        }
+      }
+
+      function renderStations(stations) {
+        const container = document.getElementById("stations");
+        container.innerHTML = "";
+
+        stations.forEach((station, index) => {
+          const stationCard = createStationCard(station, index);
+          container.appendChild(stationCard);
+        });
+      }
+
+      async function loadStations() {
+        try {
+          const stations = await fetchStationsData();
+          renderStations(stations);
+        } catch (error) {
+          console.error("Error loading stations:", error);
+        }
+      }
+
+      function setupModalEvents() {
+        const modal = document.getElementById("mapModal");
+        const closeButton = document.querySelector(".close");
+
+        closeButton.onclick = closeMapModal;
+
+        window.onclick = function (event) {
+          if (event.target === modal) {
+            closeMapModal();
+          }
+        };
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        setupModalEvents();
+        loadStations();
+      });
+    </script>
+  </body>
 </html>
-
